@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>حاسبة التقدير النهائي - السنة الأولى</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+    background: #0d0d0d;
+    margin: 0;
+    padding: 24px 16px 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  h1 {
+    text-align: center;
+    font-size: 1.7rem;
+    margin: 8px 0 20px;
+    color: #fff;
+  }
+  .table-wrap {
+    width: 100%;
+    max-width: 700px;
+    background: #111;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #2a2a2a;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  thead th {
+    background: #161616;
+    color: #fff;
+    padding: 16px 10px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    border-bottom: 1px solid #2a2a2a;
+  }
+  tbody td {
+    padding: 16px 10px;
+    text-align: center;
+    border-top: 1px solid #262626;
+    font-size: 1.05rem;
+    color: #eee;
+  }
+  .subject-cell { font-weight: 500; }
+  select.grade-select {
+    width: 100%;
+    max-width: 150px;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 8px;
+    background: #2a2a2a;
+    color: #eee;
+    font-size: 0.95rem;
+    text-align: center;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+  }
+  select.grade-select:focus { outline: 1px solid #555; }
+  input.score-input {
+    width: 100%;
+    max-width: 110px;
+    padding: 10px 12px;
+    border: 1px solid #333;
+    border-radius: 8px;
+    background: #2a2a2a;
+    color: #eee;
+    font-size: 1rem;
+    text-align: center;
+  }
+  input.score-input:focus { outline: 1px solid #2f5fd7; }
+  input.score-input::-webkit-outer-spin-button,
+  input.score-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .calc-btn {
+    margin-top: 26px;
+    background: #2f5fd7;
+    color: #fff;
+    border: none;
+    padding: 16px 40px;
+    font-size: 1.1rem;
+    border-radius: 10px;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(47,95,215,0.35);
+  }
+  .calc-btn:hover { background: #244aad; }
+  .result-box {
+    margin-top: 22px;
+    background: #1c1c1c;
+    border: 1px solid #2f5fd7;
+    color: #fff;
+    padding: 18px 30px;
+    border-radius: 10px;
+    font-size: 1.3rem;
+    font-weight: 700;
+    text-align: center;
+    min-width: 260px;
+  }
+</style>
+</head>
+<body>
+
+<h1>حاسبة التقدير النهائي - السنة الأولى</h1>
+
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr>
+      <th>الكردت</th>
+      <th>الدرجة</th>
+      <th>المادة</th>
+    </tr>
+  </thead>
+  <tbody id="tableBody">
+    <!-- rows injected by JS -->
+  </tbody>
+</table>
+</div>
+
+<button class="calc-btn" onclick="calculateFinal()">احسب التقدير النهائي</button>
+
+<div class="result-box" id="resultBox">
+  <div id="res100">النتيجة من 100 ستظهر هنا</div>
+  <div id="resGrade" style="margin-top:10px;"></div>
+  <div id="res5" style="margin-top:10px;"></div>
+</div>
+
+<script>
+  // Subjects with credit hours (electives and physical/art education removed)
+  const subjects = [
+    { ar: "Anatomy", credits: 4 },
+    { ar: "Medical Physics", credits: 3 },
+    { ar: "Human Cell & Gene", credits: 3 },
+    { ar: "Foundation of Medicine", credits: 2 },
+    { ar: "Human Rights", credits: 2 },
+    { ar: "Arabic 1", credits: 1 },
+    { ar: "Arabic 2", credits: 1 },
+    { ar: "Medical Terminology 1", credits: 1 },
+    { ar: "Medical Terminology 2", credits: 1 },
+    { ar: "HSD", credits: 5 },
+    { ar: "Biochemistry", credits: 3 },
+    { ar: "Physiology", credits: 3 },
+    { ar: "Microbiology", credits: 3 },
+    { ar: "Concept of Health & Disease", credits: 2 },
+    { ar: "Basic Computer", credits: 2 },
+  ];
+
+  
+  const tbody = document.getElementById("tableBody");
+
+  subjects.forEach((subj, idx) => {
+    const row = document.createElement("tr");
+    const inputId = `score_${idx}`;
+
+    row.innerHTML = `
+      <td>${subj.credits}</td>
+      <td>
+        <input type="number" class="score-input" id="${inputId}" min="0" max="100" step="0.5" placeholder="0-100" data-weight="${subj.credits}">
+      </td>
+      <td class="subject-cell">${subj.ar}</td>
+    `;
+    tbody.appendChild(row);
+  });
+
+  // Percentage ranges used to map the final average back to a letter grade
+  const gradeRanges = [
+    { min: 90, label: "امتياز" },
+    { min: 80, label: "جيد جدا" },
+    { min: 70, label: "جيد" },
+    { min: 60, label: "متوسط" },
+    { min: 50, label: "مقبول" },
+    { min: 0,  label: "ضعيف" },
+  ];
+
+  function percentageToGrade(pct) {
+    for (const r of gradeRanges) {
+      if (pct >= r.min) return r.label;
+    }
+    return "ضعيف";
+  }
+
+  function calculateFinal() {
+    const inputs = document.querySelectorAll(".score-input");
+    let weightedSum = 0;
+    let weightSum = 0;
+    let hasEmpty = false;
+
+    inputs.forEach(inp => {
+      const weight = parseFloat(inp.dataset.weight);
+      const value = parseFloat(inp.value);
+      if (isNaN(value)) {
+        hasEmpty = true;
+        return;
+      }
+      weightedSum += weight * value;
+      weightSum += weight;
+    });
+
+    if (hasEmpty || weightSum === 0) {
+      document.getElementById("res100").textContent = "أدخل درجات كل المواد أولاً";
+      document.getElementById("resGrade").textContent = "";
+      document.getElementById("res5").textContent = "";
+      return;
+    }
+
+    const percentage = weightedSum / weightSum;
+    const outOf5 = (percentage / 100) * 5;
+    const gradeLabel = percentageToGrade(percentage);
+
+    document.getElementById("res100").textContent =
+      `النتيجة من 100: ${percentage.toFixed(2)}`;
+    document.getElementById("resGrade").textContent =
+      `التقدير: ${gradeLabel}`;
+    document.getElementById("res5").textContent =
+      `النتيجة من 5: ${outOf5.toFixed(2)}`;
+  }
+</script>
+
+</body>
+</html>
